@@ -1,0 +1,30 @@
+# Lokální "PACS" pro vývoj: Orthanc s DICOMweb (QIDO-RS/WADO-RS) a Modality Worklist.
+# Web UI: http://localhost:8042  |  DICOMweb: http://localhost:8042/dicom-web  |  DIMSE: port 4242 (AET ORTHANC)
+services:
+  orthanc:
+    image: orthancteam/orthanc:24.10.3
+    ports:
+      - "8042:8042"
+      - "4242:4242"
+    environment:
+      ORTHANC__NAME: "RAKATHON-PACS"
+      ORTHANC__AUTHENTICATION_ENABLED: "false"
+      ORTHANC__DICOM_AET: "ORTHANC"
+      # bez toho Orthanc převádí na Latin1 a z "břicha" je "bicha"
+      ORTHANC__DEFAULT_ENCODING: "Utf8"
+      # dovolit C-FIND / MWL dotazy z libovolného AET (jen pro vývoj!)
+      ORTHANC__DICOM_ALWAYS_ALLOW_FIND: "true"
+      ORTHANC__DICOM_ALWAYS_ALLOW_FIND_WORKLIST: "true"
+      DICOM_WEB_PLUGIN_ENABLED: "true"
+      WORKLISTS_PLUGIN_ENABLED: "true"
+      ORTHANC__WORKLISTS__DATABASE: "/worklists"
+      # SliceThickness navíc v indexu, aby šel vracet přes C-FIND/QIDO bez čtení souborů.
+      # Pozn.: InstanceAvailability Orthanc počítá sám (vždy ONLINE) -> archivní vrstvu
+      # simulujeme štítky (labels) na sérii, viz adapters/dicomweb.py:OrthancPacs.
+      ORTHANC__EXTRA_MAIN_DICOM_TAGS: |
+        {"Series": ["SliceThickness"]}
+    volumes:
+      - orthanc-db:/var/lib/orthanc/db
+      - ./data/generated/worklists:/worklists
+volumes:
+  orthanc-db:
