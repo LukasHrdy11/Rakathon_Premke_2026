@@ -77,6 +77,12 @@
 - Výměna stále napodobuje CD workflow: data se pošlou na vyžádání, automaticky se nedohledávají. **Tady je přidaná hodnota**: vědět předem, co vyžádat.
 - Motol a Homolka jsou dvě samostatné nemocnice. Zjistit, zda sdílejí PACS (viz otázky).
 - Rodné číslo jako PatientID: pozor na GDPR. V prototypu pseudonymizovat.
+- **Národní eHealth** (podle webináře pořadatele, detail v [docs/06](06_poznatky_ze_zdroju.md)):
+  - Navrhovaná federovaná výměnná vrstva **AAfD**: registr drží metadata a odkazy, obsah zůstává u poskytovatele.
+  - Dokumenty se hledají přes **IHE MHD** nad FHIR R4: ITI-65 publish, ITI-67 find, ITI-68 retrieve.
+  - **eŽádanka** je stavový automat. Podle návrhu novely má být povinná od 2027/2028.
+  - Snímky a zprávy z obrazových vyšetření spadají do vlny **EHDS** v roce 2031.
+  - Data se „zpřístupňují“ (oprávnění a účel se ověří při přístupu), ne volně „sdílejí“.
 
 ## Nástroje
 - **Orthanc**: open-source mini-PACS (REST, DICOMweb, MWL, C-FIND/C-MOVE). V repu přes `docker-compose.yml`.
@@ -92,3 +98,6 @@
 - **Restaging**: přešetření rozsahu nádoru po léčbě. **Dispenzarizace**: pravidelné sledování.
 - **Hanging protocol**: rozložení sérií na monitoru radiologa (aktuální vedle předchozí).
 - **MDT / MDK**: multidisciplinární tým nebo komise.
+- **KOC / ROC**: komplexní / regionální onkologické centrum. Pacient se často diagnostikuje v regionu a léčí v KOC, takže předchozí snímky jsou jinde.
+- **Fast track**: zrychlená cesta při podezření na nádor (u plic CT do týdne, max. 14 dní).
+- **AAfD, MHD, PDQm/PIXm, ATNA, EHDS**: viz [docs/06](06_poznatky_ze_zdroju.md).

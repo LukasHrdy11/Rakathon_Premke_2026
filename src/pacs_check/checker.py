@@ -12,7 +12,7 @@ from datetime import date, timedelta
 from typing import Protocol
 
 from .models import (
-    Availability, CaseResult, Finding, PlannedExam, RisRecord, Series, Status, Study,
+    Availability, CaseResult, Finding, Owner, PlannedExam, RisRecord, Series, Status, Study,
 )
 from .normalize import has_contrast, is_localizer, regions
 from .referral import extract_mentions, implies_follow_up, implies_oncology
@@ -38,6 +38,15 @@ class Rules:
     max_diagnostic_slice_mm: float = 5.0
     home_institutions: tuple[str, ...] = ("FN Motol",)
     mention_date_tolerance_days: int = 45
+    # Úkol = vlastník + kolik dní PŘED plánovaným CT musí být hotovo. Odhady, ověřit se zadavatelem
+    # (kdo co dnes dělá, jak dlouho trvá prefetch a ePACS). Nejde o klinické lhůty.
+    tasks: dict[Status, tuple[Owner, int]] = field(default_factory=lambda: {
+        Status.ARCHIVED_PREFETCH: (Owner.RAD_ASSISTANT, 1),
+        Status.INCOMPLETE_SERIES: (Owner.RAD_ASSISTANT, 1),
+        Status.NEEDS_HUMAN: (Owner.CLINICIAN, 2),
+        Status.EXTERNAL_REQUEST_EPACS: (Owner.RAD_ASSISTANT, 3),
+        Status.MISSING_IN_PACS: (Owner.PACS_ADMIN, 2),
+    })
 
 
 def _is_home(institution: str, rules: Rules) -> bool:
@@ -85,8 +94,19 @@ def _check_study(planned: PlannedExam, study: Study, role: str, rules: Rules) ->
     return out
 
 
+def _assign_tasks(result: CaseResult, rules: Rules, today: date | None) -> None:
+    """Každý nález k dořešení dostane vlastníka a termín; nestihnutelný termín se eskaluje."""
+    for f in result.findings:
+        if f.status not in rules.tasks:
+            continue
+        f.owner, lead_days = rules.tasks[f.status]
+        f.due = result.planned.scheduled_date - timedelta(days=lead_days)
+        f.escalate = today is not None and f.due < today
+
+
 def check_case(planned: PlannedExam, pacs: PacsSource, ris: RisSource | None = None,
-               rules: Rules | None = None) -> CaseResult:
+               rules: Rules | None = None, today: date | None = None) -> CaseResult:
+    """`today` = den běhu kontroly; bez něj se nepočítá eskalace (žádné date.today() v jádře)."""
     rules = rules or Rules()
     result = CaseResult(planned)
     studies = [s for s in pacs.studies_for_patient(planned.patient_id) if s.accession != planned.accession]
@@ -94,12 +114,16 @@ def check_case(planned: PlannedExam, pacs: PacsSource, ris: RisSource | None = N
 
     # 1) RIS říká "provedeno", PACS nemá
     pacs_accessions = {s.accession for s in studies if s.accession}
+    ris_dates: list[date] = []   # relevantní vyšetření, o kterých ví RIS (i když nejsou v PACS)
     if ris is not None:
         for rec in ris.history_for_patient(planned.patient_id):
             if rec.accession == planned.accession or rec.status != "COMPLETED":
                 continue
             fake = Study("", rec.patient_id, rec.exam_date, [rec.modality], rec.description, rec.accession)
-            if is_relevant(planned, fake, rules) and rec.accession not in pacs_accessions:
+            if not is_relevant(planned, fake, rules):
+                continue
+            ris_dates.append(rec.exam_date)
+            if rec.accession not in pacs_accessions:
                 result.findings.append(Finding(
                     Status.MISSING_IN_PACS,
                     f"RIS: {rec.modality} {rec.exam_date:%d.%m.%Y} „{rec.description}“ (acc. {rec.accession}) není v PACS",
@@ -108,6 +132,17 @@ def check_case(planned: PlannedExam, pacs: PacsSource, ris: RisSource | None = N
     # 2) Žádanka zmiňuje externí vyšetření, které v PACS není
     for m in extract_mentions(planned.referral_text):
         if m.internal:
+            continue
+        if m.negated:
+            # nic se nevyžaduje, ale nález zůstane viditelný se zdrojem (extrakce může chybovat)
+            result.findings.append(Finding(
+                Status.OK, f"Žádanka: „{m.text}“ – podle textu neproběhlo, nevyžaduje se", source=m.text))
+            continue
+        if m.approx_date and m.approx_date > planned.scheduled_date:
+            result.findings.append(Finding(
+                Status.NEEDS_HUMAN,
+                f"Žádanka: „{m.text}“ – datum je po termínu plánovaného CT",
+                "Ověřit datum (překlep / teprve plánované vyšetření?)", source=m.text))
             continue
         matched = any(
             not _is_home(s.institution, rules)
@@ -119,8 +154,8 @@ def check_case(planned: PlannedExam, pacs: PacsSource, ris: RisSource | None = N
             when = f" ({m.approx_date:%m/%Y})" if m.approx_date else ""
             result.findings.append(Finding(
                 Status.EXTERNAL_REQUEST_EPACS,
-                f"Žádanka zmiňuje {m.modality} – {m.place.title()}{when}, v PACS nenalezeno",
-                f"Vyžádat snímky přes ePACS/ReDiMed z: {m.place.title()}"))
+                f"Žádanka zmiňuje {m.modality} – {m.place_text}{when}, v PACS nenalezeno (zdroj: „{m.text}“)",
+                f"Vyžádat snímky přes ePACS/ReDiMed z: {m.place_text}", source=m.text))
 
     # 3) Výběr komparátorů: poslední relevantní + u onkologie baseline (nejstarší v okně)
     oncology = planned.oncology or implies_oncology(planned.referral_text)
@@ -133,26 +168,30 @@ def check_case(planned: PlannedExam, pacs: PacsSource, ris: RisSource | None = N
             baseline = relevant[0]
             result.comparators.insert(0, baseline)
             result.findings += _check_study(planned, baseline, "Baseline", rules)
-        gap = (planned.scheduled_date - latest.study_date).days
+        # mezera podle nejnovějšího známého vyšetření (PACS i RIS), jinak falešný úkol pro lékaře
+        gap = (planned.scheduled_date - max([latest.study_date, *ris_dates])).days
         if follow_up and gap > rules.oncology_followup_days:
             result.findings.append(Finding(
                 Status.NEEDS_HUMAN,
                 f"Poslední relevantní vyšetření je {gap} dní staré – chybí mezikontrola?",
                 "Ověřit u pacienta/ošetřujícího, zda nebyl vyšetřen jinde"))
-    elif follow_up and not any(f.status == Status.EXTERNAL_REQUEST_EPACS for f in result.findings):
+    elif follow_up and not any(f.status in (Status.EXTERNAL_REQUEST_EPACS, Status.MISSING_IN_PACS)
+                               for f in result.findings):
         result.findings.append(Finding(
             Status.NEEDS_HUMAN,
             "Kontrolní/onkologické vyšetření, ale žádné předchozí relevantní snímky",
             "Ověřit, kde byl pacient dříve vyšetřen"))
-    elif not result.findings:
+    elif all(f.status == Status.OK for f in result.findings):
         result.findings.append(Finding(Status.NO_PRIOR_EXPECTED, "První vyšetření oblasti, nic se nečeká"))
+    _assign_tasks(result, rules, today)
     return result
 
 
 def check_all(planned: list[PlannedExam], pacs: PacsSource, ris: RisSource | None = None,
-              rules: Rules | None = None) -> list[CaseResult]:
-    results = [check_case(p, pacs, ris, rules) for p in planned]
-    return sorted(results, key=lambda r: (r.planned.scheduled_date, -r.status.severity))
+              rules: Rules | None = None, today: date | None = None) -> list[CaseResult]:
+    results = [check_case(p, pacs, ris, rules, today) for p in planned]
+    # v rámci dne napřed eskalované (termín už nestihneme), pak podle závažnosti
+    return sorted(results, key=lambda r: (r.planned.scheduled_date, not r.escalate, -r.status.severity))
 
 
 def planned_in_window(planned: list[PlannedExam], start: date, days: int) -> list[PlannedExam]:

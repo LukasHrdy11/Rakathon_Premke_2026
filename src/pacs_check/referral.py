@@ -7,6 +7,7 @@ rozhraním (vrací list[PriorMention]) – viz docs/03_navrh_reseni.md.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import date
 
@@ -22,6 +23,11 @@ _FOLLOW_UP = re.compile(r"\bkontrol|\brestag|\bfollow|\bdispenz|\bpo (?:chemo|le
 
 _ONCOLOGY = re.compile(r"\bca\b|\bkarcinom|\bnador|\blymfom|\bmeta\b|\bmetast|\bonko|\brestag|\brecist|\bmelanom|\bsarkom")
 
+# vyšetření podle textu NEPROBĚHLO. Jen jednoznačné výrazy: "odmítl", "zrušeno" se často týkají
+# něčeho jiného ("odmítl kontrastní látku", "operace zrušena"). "Snímky nejsou k dispozici" negace
+# není, to je přesně případ pro ePACS.
+_NOT_DONE = re.compile(r"\bneproveden|\bnebyl[oa]? proveden|\bneprobehl|\bnerealizov")
+
 INTERNAL_PLACES = ("motol", "fn motol", "nase", "naseho")
 
 
@@ -31,7 +37,9 @@ class PriorMention:
     place: str
     approx_date: date | None
     regions: set[str]
-    text: str
+    text: str               # citace z původního textu žádanky (zdroj nálezu)
+    place_text: str = ""    # místo, jak je napsané v žádance (pro zobrazení)
+    negated: bool = False   # text říká, že vyšetření neproběhlo
 
     @property
     def internal(self) -> bool:
@@ -50,8 +58,25 @@ def _parse_date(raw: str) -> date | None:
     return None
 
 
+def _fold_same_length(text: str) -> str:
+    """Jako normalize.fold, ale znak po znaku -> indexy sedí na původní text (kvůli citaci)."""
+    out = []
+    for c in text:
+        base = "".join(x for x in unicodedata.normalize("NFKD", c) if not unicodedata.combining(x)).lower()
+        out.append(" " if c in ",;_" else (base[:1] or " "))
+    return "".join(out)
+
+
+def _clause_after(text: str, end: int) -> str:
+    """Klauzule hned za zmínkou: do ',' ';' nebo konce věty; začíná-li čárkou, ta následující."""
+    parts = re.split(r"[,;]|\.\s|\.$", text[end:end + 80])
+    first = parts[0].strip(" -–")
+    return first if first or len(parts) < 2 else parts[1]
+
+
 def extract_mentions(referral_text: str) -> list[PriorMention]:
-    t = fold(referral_text)
+    referral_text = referral_text or ""
+    t = _fold_same_length(referral_text)
     out = []
     for m in _MENTION.finditer(t):
         mod = m.group("mod").replace(" ", "").upper()
@@ -62,7 +87,9 @@ def extract_mentions(referral_text: str) -> list[PriorMention]:
             place=m.group("place").strip(),
             approx_date=_parse_date(m.group("date")),
             regions=regions_from_text(sentence),
-            text=m.group(0),
+            text=referral_text[m.start():m.end()],
+            place_text=referral_text[m.start("place"):m.end("place")].strip(),
+            negated=bool(_NOT_DONE.search(m.group(0) + " " + fold(_clause_after(referral_text, m.end())))),
         ))
     return out
 

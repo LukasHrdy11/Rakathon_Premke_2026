@@ -27,9 +27,15 @@ Položit na **online session 15. 10.** nebo hned v pátek ráno. Odpovědi zapis
 - [ ] Kdo bude výstup používat: radiolog, radiologický asistent, plánovačka, onkolog?
 - [ ] Kolik dní předem? Kolik CT denně (řádově)?
 - [ ] V jaké podobě: seznam, e-mail, značka v RIS, úkol? Kde by to „žilo“?
+- [ ] **Kdo vlastní který úkol?** Prefetch, ePACS žádost, chybějící série, RIS≠PACS, ověření u lékaře. Odpovídá to `Rules.tasks`?
+- [ ] **Jak dlouho trvá** prefetch z archivu a vyžádání přes ePACS? (předstih úkolu, teď odhad 1 a 3 dny)
+- [ ] Nese MWL/RIS **prioritu** (`RequestedProcedurePriority`) nebo příznak fast track / suspekce na nádor?
+- [ ] Používá Motol/Homolka **eŽádanky**? Je žádanka na CT dostupná strukturovaně (FHIR `ServiceRequest`)?
+- [ ] Přicházejí externí snímky dnes přes ePACS jako studie s `InstitutionName` jiné nemocnice? Jak poznáme, že vyžádané snímky dorazily?
 - [ ] Jak často se dnes stane, že komparace chybí? Existují čísla nebo příklady?
 - [ ] Co je nejčastější příčina: externí vyšetření, archiv, chybějící série, nebo chyba v ID?
 
 ## Hodnocení
 - [ ] Co by zadavatel považoval za úspěch prototypu?
-- [ ] Co konkrétně chce InterSystems pro svou cenu (IRIS, FHIR)?
+- [ ] Co konkrétně chce InterSystems pro svou cenu (IRIS, FHIR)? Stačí export FHIR `Task`, nebo chtějí FHIR server?
+- [ ] Mentor pro eHealth (M. Opatřil): je pro prototyp vhodné ukázat MHD ITI-67 stub nad CZ HIE IG?

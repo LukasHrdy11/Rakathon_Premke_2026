@@ -53,8 +53,9 @@ def build_scenarios(today: date) -> list[Scenario]:
     T = lambda days: today + timedelta(days=days)  # noqa: E731
     sc: list[Scenario] = []
 
-    def planned(n, days, desc, referral, onco=False):
-        return PlannedExam(f"PLAN{n:03d}", f"SYN{n:03d}", f"TEST^PACIENT{n:02d}", T(days), "CT", desc, referral, onco)
+    def planned(n, days, desc, referral, onco=False, priority="ROUTINE"):
+        return PlannedExam(f"PLAN{n:03d}", f"SYN{n:03d}", f"TEST^PACIENT{n:02d}", T(days), "CT", desc, referral, onco,
+                           priority)
 
     # 1) Vše v pořádku: onkologie, poslední kontrola + baseline online
     p = planned(1, 1, "CT hr+bř s k.l.", "Ca plic, restaging po 3. cyklu chemoterapie.", True)
@@ -76,7 +77,7 @@ def build_scenarios(today: date) -> list[Scenario]:
         _std("SYN003", T(-60), "CT břicha s k.l.", [_ser("Topogram", None), _ser("Portální fáze 8 mm", 8.0, "Iomeron 350")], "A3001"),
     ], expected="INCOMPLETE_SERIES"))
 
-    # 4) Externí CT zmíněné v žádance, v PACS není
+    # 4) Externí CT zmíněné v žádance, v PACS není. CT za 2 dny, ePACS potřebuje 3 -> eskalace
     ext = T(-75)
     p = planned(4, 2, "CT břicha s k.l.",
                 f"Ca pankreatu. CT břicha z Oblastní nemocnice Kladno {ext.month:02d}/{ext.year}, prosím srovnat.", True)
@@ -124,6 +125,24 @@ def build_scenarios(today: date) -> list[Scenario]:
     sc.append(Scenario(p, [
         _std("SYN010", T(-150), "CT břicha nativ", [_ser("Topogram", None), _ser("Nativ 1.0 mm", 1.0, body_part="ABDOMEN")], "A10001"),
     ], expected="OK"))
+
+    # 11) Negace: externí CT podle žádanky NEPROBĚHLO -> nic nevyžadovat, zmínku ale ukázat se zdrojem
+    p = planned(11, 5, "CT břicha s k.l.",
+                f"Bolesti břicha. CT břicha z Nemocnice Kladno {ext.month:02d}/{ext.year} neprovedeno, pacient se nedostavil.")
+    sc.append(Scenario(p, [], expected="NO_PRIOR_EXPECTED"))
+
+    # 12) Fast track: suspektní ložisko z regionu (dojíždí do Prahy), "snímky nejsou k dispozici" NENÍ negace
+    #     -> ePACS, priorita HIGH, termín úkolu zítra (zatím bez eskalace)
+    reg = T(-10)
+    p = planned(12, 4, "CT hrudníku s k.l.",
+                f"Susp. karcinom plic, fast track. CT hrudníku z Nemocnice Kladno {reg.day}. {reg.month}. {reg.year}, "
+                "snímky nejsou k dispozici.", True, "HIGH")
+    sc.append(Scenario(p, [], expected="EXTERNAL_REQUEST_EPACS"))
+
+    # 13) Zmínka s datem PO plánovaném CT (překlep nebo teprve plánované vyšetření) -> ověřit ručně
+    fut = T(40)
+    p = planned(13, 6, "CT mozku nativ", f"Závratě. MR mozku z Nemocnice Na Homolce {fut.month:02d}/{fut.year}.")
+    sc.append(Scenario(p, [], expected="NEEDS_HUMAN"))
     return sc
 
 
@@ -172,6 +191,7 @@ def _worklist_item(p: PlannedExam) -> Dataset:
     ds.RequestedProcedureDescription = p.description
     ds.ReasonForTheRequestedProcedure = p.referral_text[:64]
     ds.RequestedProcedureComments = p.referral_text
+    ds.RequestedProcedurePriority = p.priority
     sps = Dataset()
     sps.Modality = p.modality
     sps.ScheduledStationAETitle = "CT_MOTOL_1"

@@ -32,6 +32,14 @@ Chybějící vyšetření se dá poznat jen tak, že ho **očekává jiný zdroj
 ```
 Jádro (`checker.py`) nezná zdroj dat. **Na hackathonu se podle dat od zadavatele píše jen adaptér.**
 
+Odpovídá doporučené architektuře z webináře k českému eHealth ([docs/06](06_poznatky_ze_zdroju.md)):
+- klinické UI = `report.py` (worklist)
+- procesní jádro (úkol, stav, audit) = `checker.py` + `audit.py`
+- FHIR adaptér na okraji = `fhir.py` (`Task`)
+- HIE/API stub = zatím chybí (MHD ITI-67, viz roadmapa)
+
+Každý nález je **úkol s vlastníkem, termínem a eskalací** (`Rules.tasks`). Předstihy jsou provozní odhady, ne klinické lhůty.
+
 ## Stavy (výstup pro každé plánované CT)
 | Stav | Význam | Akce |
 |---|---|---|
@@ -55,7 +63,12 @@ Jádro (`checker.py`) nezná zdroj dat. **Na hackathonu se podle dat od zadavate
 2. **LLM extraktor žádanek a zpráv**: stejné rozhraní jako `referral.extract_mentions`, vrací strukturované `PriorMention`. Lokální model nebo Claude API **jen nad syntetickými/anonymizovanými texty** (pravidla §6). Prompt: „vypiš všechna zmíněná předchozí zobrazovací vyšetření: modalita, oblast, místo, datum“. Vyhodnotit na sadě ručně anotovaných žádanek proti regex baseline.
 3. **Relevance přes standardní kódy**: mapování popisů na LOINC/RSNA Radiology Playbook (RPID) místo regexů. Plus učení z historie, které komparace radiologové skutečně otevírali (pokud má PACS audit log).
 4. **Akce, ne jen report**: tlačítko „prefetch“ (C-MOVE přes Orthanc `/modalities/{x}/move`) a předvyplněná ePACS žádost.
-5. **Integrace do workflow**: denní běh (cron) v 6:00 na D+1…D+3, výstup do RIS jako flag nebo FHIR `Task`, e-mail pro radiologického asistenta.
+5. **Integrace do workflow**: denní běh (cron) v 6:00 na D+1…D+3, výstup do RIS jako flag nebo FHIR `Task` (export už je v `fhir.py`), e-mail pro radiologického asistenta.
+   **Stav úkolu** (požádáno → přijato → snímky dorazily): odeslaná ePACS žádost ještě neznamená, že snímky jsou na místě.
+5b. **MHD stub (budoucí AAfD)**:
+   - Simulovaný registr odpoví na ITI-67 `DocumentReference` zprávami z obrazových vyšetření z jiných nemocnic.
+   - Je to šestý zdroj „očekávání“: najde i externí CT, které žádanka nezmiňuje.
+   - Prezentovat jen jako stub, ne jako produkční integraci.
 6. **Metriky pro pitch**: kolik případů z X by systém zachytil, odhad ušetřeného času, méně neúplných popisů.
 
 ## Rizika a jak je zmírnit

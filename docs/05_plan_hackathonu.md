@@ -32,12 +32,24 @@
 
 ## Kostra pitche (3–5 min, podle kritérií §8)
 1. **Příběh** (relevance, dopad): „Pacientka s ca prsu, restaging. Radiolog otevře CT a chybí baseline z jiné nemocnice. Popis je bez srovnání, nebo se odkládá.“
-2. **Problém v číslech**: kolik CT denně, jak často chybí komparace (od zadavatele).
+2. **Problém v číslech**: kolik CT denně, jak často chybí komparace (od zadavatele). Kontext z podkladů pořadatele ([docs/06](06_poznatky_ze_zdroju.md)):
+   - Do 4 týdnů od bronchoskopie zahájí léčbu jen 21–31 % pacientů s ca plic.
+   - Praha léčí 1 011 pacientů s ca plic, bydlí v ní ale jen 674. Diagnostika proběhne v regionu, snímky jsou jinde.
+   - Každé 4 týdny odkladu léčby jsou asociovány s vyšší mortalitou (Hanna, BMJ 2020; asociace, ne individuální efekt).
 3. **Vhled**: co chybí, pozná jen ten, kdo ví, co čekat (RIS, žádanka, onkologický rytmus).
 4. **Demo** (kvalita prototypu, UX): worklist na zítřek, barvy stavů, konkrétní akce.
 5. **Jak to funguje** (proveditelnost, práce s daty): standardy DICOMweb/DIMSE/MWL/HL7/FHIR, IHE SWF, napojení na ePACS.
 6. **Implementace** (potenciál): běží vedle PACS, jen čte data, nediagnostikuje, takže nízké regulatorní riziko. Pilot na jedné CT lince.
 7. **Další kroky**: LLM nad zprávami, učení z audit logu, Motol ↔ Homolka.
+
+## „Minimum pro uvěřitelné MVP“ (webinář eHealth, slide 20) → kde to máme
+| Bod | V projektu |
+|---|---|
+| 1. Klinická potřeba a odpovědná role | komparace před CT; úkoly mají vlastníka (`Rules.tasks`), klinická rozhodnutí má lékař |
+| 2. Zdroj pravdy a identifikátory | PACS (obrazy), RIS (provedeno), accession number a PatientID. Limit: identita napříč nemocnicemi (PDQm/PIXm) |
+| 3. Konkrétní FHIR/IHE profil | `Task` (R4, ilustrativní), DICOMweb/DIMSE/MWL, IHE SWF; další krok MHD ITI-67 |
+| 4. Pravidla přístupu a audit | `audit.jsonl` (kdo, kdy, účel, pacienti), jen metadata bez pixelů. RBAC zatím ne |
+| 5. Syntetická data a test chyb | 13 scénářů včetně negace, chybného data a nestihnutelného termínu; `pytest` |
 
 ## Checklist odevzdání
 - [ ] README s popisem, spuštěním, architekturou a seznamem použitých komponent a licencí (§6).

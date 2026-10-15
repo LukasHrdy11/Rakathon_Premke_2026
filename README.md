@@ -15,6 +15,7 @@ Repozitář je **příprava před hackathonem** (16.–18. 10. 2026): rešerše,
 | [03 – Návrh řešení](docs/03_navrh_reseni.md) | klíčový vhled, architektura, stavy, roadmapa, rizika |
 | [04 – Otázky pro zadavatele](docs/04_otazky_pro_zadavatele.md) | co zjistit 15. 10. / v pátek ráno |
 | [05 – Plán hackathonu](docs/05_plan_hackathonu.md) | příprava, 24h plán, role, kostra pitche, checklist |
+| [06 – Poznatky ze zdrojů](docs/06_poznatky_ze_zdroju.md) | podklady pořadatele (cesta onko pacienta, české eHealth): čísla pro pitch, úkoly, FHIR/IHE, právo |
 
 ## Rychlý start
 ```bash
@@ -45,7 +46,11 @@ Pro každé plánované CT najde relevantní předchozí vyšetření (poslední
 | 🔴 `EXTERNAL_REQUEST_EPACS` | žádanka zmiňuje externí vyšetření, které v PACS není |
 | 🟣 `MISSING_IN_PACS` | RIS: provedeno, PACS: nic |
 
-Syntetická sada (`src/pacs_check/synth/generate.py`) má 10 pacientů a pokrývá všechny stavy. Obsahuje české zkratky („CT hr+bř s k.l.“, „TAP“), prázdný BodyPartExamined a externí MR z Homolky.
+Každý nález k dořešení je **úkol**: má vlastníka (radiologický asistent / PACS admin / indikující lékař), termín (plánované CT − předstih) a příznak **eskalace**, když termín už nejde stihnout. Nálezy ze žádanky citují zdroj. Negace („neprovedeno“) a datum po plánovaném CT se neřeší automaticky. Viz [docs/06](docs/06_poznatky_ze_zdroju.md).
+
+Výstupy `run` v `reports/`: `report.html` (worklist), `report.csv`, `tasks.fhir.json` (FHIR R4 `Task` Bundle, ilustrativní, ne CZ profil) a `audit.jsonl` (kdo, kdy, zdroj, účel, pacienti).
+
+Syntetická sada (`src/pacs_check/synth/generate.py`) má 13 pacientů a pokrývá všechny stavy. Obsahuje české zkratky („CT hr+bř s k.l.“, „TAP“), prázdný BodyPartExamined, externí MR z Homolky, negaci v žádance a fast-track CT s prioritou HIGH.
 
 ## Struktura
 ```
@@ -53,8 +58,10 @@ src/pacs_check/
   models.py        datový model (PlannedExam, Study, Series, RisRecord, Status…)
   normalize.py     český volný text -> anatomické oblasti, kontrast, topogram
   referral.py      žádanka -> zmínky o předchozích vyšetřeních (regex; slot pro LLM)
-  checker.py       jádro: relevance, výběr komparátorů, stavy  (Rules = konfigurace)
+  checker.py       jádro: relevance, výběr komparátorů, stavy, úkoly  (Rules = konfigurace)
   report.py        konzole, CSV, HTML worklist
+  fhir.py          export úkolů jako FHIR R4 Task (FHIR jen na okraji)
+  audit.py         auditní záznam běhu (JSONL)
   cli.py           pacs-check generate | upload | run
   adapters/        json_files (export), dicomweb (QIDO-RS, Orthanc), dimse (C-FIND, MWL)
   synth/           generátor syntetických scénářů + DICOM + MWL souborů

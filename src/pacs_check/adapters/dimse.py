@@ -82,6 +82,7 @@ class DimsePacs:
         q = Dataset()
         q.PatientID = q.PatientName = q.AccessionNumber = q.RequestedProcedureDescription = ""
         q.ReasonForTheRequestedProcedure = q.RequestedProcedureComments = ""
+        q.RequestedProcedurePriority = ""
         sps = Dataset()
         sps.Modality = modality
         sps.ScheduledProcedureStepStartDate = ""
@@ -96,5 +97,6 @@ class DimsePacs:
                 accession=ds.AccessionNumber, patient_id=ds.PatientID, patient_name=str(ds.PatientName),
                 scheduled_date=_date(step.ScheduledProcedureStepStartDate), modality=step.Modality,
                 description=ds.get("RequestedProcedureDescription", "") or step.get("ScheduledProcedureStepDescription", ""),
-                referral_text=reason, oncology=implies_oncology(reason)))
+                referral_text=reason, oncology=implies_oncology(reason),
+                priority=ds.get("RequestedProcedurePriority", "") or "ROUTINE"))
         return out

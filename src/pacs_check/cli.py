@@ -10,7 +10,9 @@ from pathlib import Path
 import httpx
 
 from .adapters.json_files import JsonPacs, JsonRis, load_worklist
+from .audit import append_audit
 from .checker import check_all, planned_in_window
+from .fhir import write_bundle
 from .report import to_console, to_csv, to_html
 
 DATA = Path("data/generated")
@@ -63,13 +65,17 @@ def cmd_run(a):
         planned = load_worklist(data / "worklist.json")
     ris = JsonRis(data / "ris.json") if (data / "ris.json").exists() else None
     start = date.fromisoformat(a.today) if a.today else _reference_date(data)
-    results = check_all(planned_in_window(planned, start, a.days), pacs, ris)
+    window = planned_in_window(planned, start, a.days)
+    results = check_all(window, pacs, ris, today=start)
     print(to_console(results))
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     to_csv(results, out / "report.csv")
     to_html(results, out / "report.html")
-    print(f"\nReport: {out / 'report.html'}  |  {out / 'report.csv'}")
+    write_bundle(results, out / "tasks.fhir.json")
+    append_audit(out / "audit.jsonl", a.source, start, a.days, [p.patient_id for p in window])
+    print(f"\nReport: {out / 'report.html'}  |  {out / 'report.csv'}  |  FHIR Task: {out / 'tasks.fhir.json'}"
+          f"  |  audit: {out / 'audit.jsonl'}")
 
 
 def main(argv=None):

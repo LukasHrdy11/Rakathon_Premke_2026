@@ -21,3 +21,24 @@ def test_no_mention():
 def test_flags():
     assert implies_follow_up("Kontrola po léčbě") and not implies_follow_up("Bolesti břicha")
     assert implies_oncology("Ca prsu, dispenzarizace") and not implies_oncology("Kontrola po pneumonii")
+
+
+def test_citation_keeps_original_text():
+    [m] = extract_mentions("Ca + meta. CT břicha z Oblastní nemocnice Kladno 07/2026, prosím srovnat.")
+    assert m.text == "CT břicha z Oblastní nemocnice Kladno 07/2026"
+
+
+def test_negation_only_when_exam_did_not_happen():
+    [m] = extract_mentions("CT břicha z Nemocnice Kladno 08/2026 neprovedeno, pacient se nedostavil.")
+    assert m.negated
+    [m] = extract_mentions("CT hrudníku z Nemocnice Kladno 08/2026, snímky nejsou k dispozici.")
+    assert not m.negated   # snímky chybí = přesně případ pro ePACS
+    [m] = extract_mentions("CT břicha z Nemocnice Kladno 08/2026, pacient odmítl kontrastní látku.")
+    assert not m.negated   # CT proběhlo, odmítnutí se týká k.l.
+    [m] = extract_mentions("CT břicha z Nemocnice Kladno 08/2026, neprovedeno.")
+    assert m.negated
+
+
+def test_place_keeps_diacritics_for_display():
+    [m] = extract_mentions("CT břicha z Oblastní nemocnice Kladno 07/2026.")
+    assert m.place_text == "Oblastní nemocnice Kladno"

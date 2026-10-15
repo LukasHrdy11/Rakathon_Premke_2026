@@ -7,6 +7,23 @@ from datetime import date
 from enum import Enum
 
 
+class Owner(str, Enum):
+    """Kdo úkol vyřeší. Klinická rozhodnutí zůstávají u oprávněného zdravotníka."""
+
+    NONE = ""
+    RAD_ASSISTANT = "RAD_ASSISTANT"
+    PACS_ADMIN = "PACS_ADMIN"
+    CLINICIAN = "CLINICIAN"
+
+
+OWNER_LABEL_CS = {
+    Owner.NONE: "",
+    Owner.RAD_ASSISTANT: "Radiologický asistent",
+    Owner.PACS_ADMIN: "PACS administrátor",
+    Owner.CLINICIAN: "Indikující lékař",
+}
+
+
 class Availability(str, Enum):
     """Odpovídá DICOM tagu InstanceAvailability (0008,0056)."""
 
@@ -88,6 +105,7 @@ class PlannedExam:
     description: str
     referral_text: str = ""
     oncology: bool = False
+    priority: str = "ROUTINE"   # RequestedProcedurePriority (0040,1003): STAT/HIGH/ROUTINE/MEDIUM/LOW
 
 
 @dataclass
@@ -105,10 +123,16 @@ class RisRecord:
 
 @dataclass
 class Finding:
+    """Nález = úkol: co dořešit, kdo za to odpovídá a do kdy (viz docs/06)."""
+
     status: Status
     message: str
     action: str = ""
     study_uid: str = ""
+    owner: Owner = Owner.NONE
+    due: date | None = None
+    escalate: bool = False      # termín už nelze stihnout -> hrozí odklad CT / popis bez komparace
+    source: str = ""            # citace zdroje (text žádanky), ze kterého nález vychází
 
 
 @dataclass
@@ -122,3 +146,7 @@ class CaseResult:
         if not self.findings:
             return Status.OK
         return max((f.status for f in self.findings), key=lambda s: s.severity)
+
+    @property
+    def escalate(self) -> bool:
+        return any(f.escalate for f in self.findings)
