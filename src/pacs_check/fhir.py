@@ -1,7 +1,7 @@
 """Export nálezů k dořešení jako FHIR R4 `Task` (Bundle typu collection).
 
 FHIR jen na okraji systému: jádro (checker) o FHIR neví, tady se jen mapuje CaseResult -> Task.
-Ilustrativní základní R4, NE český profil (CZ Core / HIE IG) – před integrací ověřit profil,
+Ilustrativní základní R4 (4.0.1), NE český profil (CZ Core / HIE IG) – před integrací ověřit profil,
 terminologii a validátorem (OperationOutcome). Viz docs/06_poznatky_ze_zdroju.md.
 """
 

@@ -30,6 +30,8 @@ Položit na **online session 15. 10.** nebo hned v pátek ráno. Odpovědi zapis
 - [ ] **Kdo vlastní který úkol?** Prefetch, ePACS žádost, chybějící série, RIS≠PACS, ověření u lékaře. Odpovídá to `Rules.tasks`?
 - [ ] **Jak dlouho trvá** prefetch z archivu a vyžádání přes ePACS? (předstih úkolu, teď odhad 1 a 3 dny)
 - [ ] Nese MWL/RIS **prioritu** (`RequestedProcedurePriority`) nebo příznak fast track / suspekce na nádor?
+- [ ] V jakém formátu jdou objednávky a zprávy mezi NIS, RIS a PACS: **HL7 v2** (ORM/ORU), MWL, nebo FHIR? [HL7 6]
+- [ ] Je v RIS/NIS strukturovaně vidět, že jde o **onkologického pacienta v léčbě** (diagnóza, fáze léčby)? Šlo by o vstup pro prioritu a `Task.reasonReference`.
 - [ ] Používá Motol/Homolka **eŽádanky**? Je žádanka na CT dostupná strukturovaně (FHIR `ServiceRequest`)?
 - [ ] Přicházejí externí snímky dnes přes ePACS jako studie s `InstitutionName` jiné nemocnice? Jak poznáme, že vyžádané snímky dorazily?
 - [ ] Jak často se dnes stane, že komparace chybí? Existují čísla nebo příklady?
@@ -38,4 +40,5 @@ Položit na **online session 15. 10.** nebo hned v pátek ráno. Odpovědi zapis
 ## Hodnocení
 - [ ] Co by zadavatel považoval za úspěch prototypu?
 - [ ] Co konkrétně chce InterSystems pro svou cenu (IRIS, FHIR)? Stačí export FHIR `Task`, nebo chtějí FHIR server?
+- [ ] Mentor HL7 ČR: dává smysl odkazovat v pitchi na Cancer Common / mCODE (hodnocení vývoje onemocnění potřebuje komparátor), nebo je to mimo rozsah?
 - [ ] Mentor pro eHealth (M. Opatřil): je pro prototyp vhodné ukázat MHD ITI-67 stub nad CZ HIE IG?

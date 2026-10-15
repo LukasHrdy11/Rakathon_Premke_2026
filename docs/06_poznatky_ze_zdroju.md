@@ -3,8 +3,9 @@
 Zdroje (ve složce `zdroje/`; materiály třetích stran, zatím necommitované – repo může být zveřejněno, pravidla §7):
 - **[FBMI]** A. Tichopád (ČVUT FBMI, Health Data Lab): *Systémová koordinace cesty pacienta – Analýza cesty onkologického pacienta* (kurz z ledna 2026, doplněný o principy a výzvy pro hackathon), `analyza_cesty_onkologickeho_pacienta_fbmi_final.pptx`.
 - **[eHealth]** M. Opatřil (Umbrellateam): *České eHealth v kostce* (webinář pro soutěžící, 15. 10. 2026), `Ceske_eHealth_v_kostce_Rakathon_2026_Michal_Opatril.pdf`.
+- **[HL7]** HL7 Česká republika: *HL7: propojené informace pro zdravotnictví* (úvod pro soutěžní týmy, zdroje ověřeny k 10. 10. 2026), `hl7_rakathon_2026___u__vod-1.pptx`.
 
-Čísla slidů jsou uvedena v závorce. Obě prezentace řeší hlavně **koordinaci péče**, ne PACS. Převzali jsme jen to, co se týká naší výzvy. Ostatní výzvy z [FBMI] (doprava pacientů, předání mezi KOC a regionem, diagnostická epizoda) patří jiným týmům.
+Čísla slidů jsou uvedena v závorce. [FBMI] a [eHealth] řeší hlavně **koordinaci péče**, ne PACS. Převzali jsme jen to, co se týká naší výzvy. Ostatní výzvy z [FBMI] (doprava pacientů, předání mezi KOC a regionem, diagnostická epizoda) patří jiným týmům.
 
 ## Shrnutí: poznatek → změna v projektu
 | Poznatek | Zdroj | Co jsme udělali |
@@ -73,3 +74,26 @@ Předstihy v `Rules.tasks` (prefetch 1 den, ePACS 3 dny, …) jsou **provozní o
 | Ztracený výsledek (vyšetření proběhlo, výsledek chybí; kdo to řeší?) | scénář 5 `MISSING_IN_PACS` → PACS administrátor |
 | Chyba extrakce (negovaný nález, starý nebo špatný termín) | scénář 11 (negace), 13 (datum po CT); „snímky nejsou k dispozici“ **není** negace (scénář 12) |
 | Měřitelné výsledky: čas k dalšímu kroku, podíl dokončených úkolů, chyby, čas koordinátora | metriky pro pitch. Sledovat i **falešná upozornění** [FBMI 44] |
+
+## HL7, FHIR a onkologické datové modely [HL7]
+Edukativní úvod: HL7 jako organizace, rodina standardů, evropský **Cancer Common** (ECCDM) a americké **mCODE**. Pro PACS nic konkrétního, ale dává rámec, **proč** komparace v onkologii potřebujeme a jak o tom mluvit datově.
+
+- **Rodina HL7** [6]: V2 = zpráva o události (příjem, objednávka, výsledek), CDA = klinický dokument, FHIR = propojené záznamy. V nemocnici běží **souběžně**, nečekat, že každý systém má FHIR [6, pozn. 8].
+  → **Pro nás:** objednávky a zprávy budou spíš HL7 v2 (ORM/ORU) nebo MWL, ne FHIR. Adaptéry na vstupu, FHIR jen na výstupu (`fhir.py`), jak už máme.
+- **FHIR v EU a ČR** [8]: EHDS vyžaduje FHIR pro prioritní typy EHR (HL7 Europe, hl7.eu/fhir). České profily na hl7.cz/fhir. NCEZ uvádí REST API podle FHIR R4. Onkologické zdroje (Cancer Common, mCODE) stojí na **R4**.
+- **Cancer Common (ECCDM)** [10–13, 18]: minimální, rozšiřitelný model napříč nádory, pro péči i výzkum. Verze **1.0.0-ballot** (k posouzení, ne normativní). Mapování na FHIR a OMOP se dokončuje. Oblasti: pacient, diagnóza a stadium, léčebné epizody, **vývoj onemocnění** (`ClinicalCancerProgression`, `OverallCancerTreatmentResponse`, `LastFollowUp`).
+- **„Počáteční stadium není automaticky současným stavem.“** Onkologická data mají časový kontext, nové hodnocení doplňuje historii [13, pozn. 11].
+  → **Pro nás:** hodnocení progrese a odpovědi na léčbu je přesně to, co radiolog bez komparátoru udělat nemůže. Proto u onkologie hledáme **baseline i poslední** vyšetření (`checker.py`, krok 3), ne jen poslední.
+- **CancerStage** [15]: klasifikace (TNM, FIGO, Lugano), komponenty T/N/M, klinická vs. patologická. Pro nás mimo rozsah (stadium neurčujeme).
+- **mCODE STU4 (4.0.0)** [19–20]: konkrétní FHIR profily a terminologie (pacient, nemoc, hodnocení, genomika, léčba, výsledky). Americký kontext, návaznost na US Core. Cancer Common a mCODE se doplňují, ale **nejsou zaměnitelné**: stejný název neznamená stejnou definici, kardinalitu ani terminologii [pozn. 20].
+- **Doporučení pro týmy** [21, pozn. 21–22]:
+  - vybrat **malý soubor** důležitých informací, vysvětlit strukturu a ověřit význam s klinickým mentorem;
+  - u AI **zachovat původ tvrzení** a **rozlišovat známé a chybějící údaje**;
+  - pro implementaci zafixovat **konkrétní publikovanou verzi** (ne CI build).
+
+### Co z toho plyne pro naši výzvu
+1. **Pitch, věta pro porotu:** „Bez komparátoru nevznikne hodnocení vývoje onemocnění (Cancer Common `ClinicalCancerProgression` / `OverallCancerTreatmentResponse`, v mCODE stav onemocnění). Hlídáme vstup, na kterém tento datový bod stojí.“ Neříkat, že je generujeme: nediagnostikujeme.
+2. **Malý soubor informací:** pracujeme jen s tím, co potřebujeme k nalezení komparátoru (pacient, modalita, oblast, datum, místo, accession). Odpovídá doporučení [21].
+3. **Původ a chybějící údaje:** už máme `Finding.source` (citace žádanky) a stavy rozlišují „předchozí se nečeká“ (`NO_PRIOR_EXPECTED`), „chybí“ a „nejisté“ (`NEEDS_HUMAN`).
+4. **Verze:** `fhir.py` cílí na FHIR **R4 (4.0.1)**. Kdyby se Task napojoval na onkologický kontext, vycházet z Cancer Common 1.0.0-ballot nebo mCODE STU4 a mapování posoudit, ne převzít [20].
+5. **Další krok (ne na hackathon):** `Task.reasonReference` na onkologickou diagnózu (`Condition`), pokud ji RIS/NIS předá. Pro prioritizaci by stačil příznak „onkologický pacient v léčbě“.
