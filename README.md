@@ -4,7 +4,7 @@
 
 Repozitář je **příprava před hackathonem** (16.–18. 10. 2026): rešerše, doménové znalosti, lokální PACS v Dockeru, syntetická data a funkční prototyp jádra.
 
-⚠️ Pravidla předpřipravený kód výslovně neřeší. Ověřit na online session 15. 10. (viz [docs/01](docs/01_rakathon_2026.md)).
+ℹ️ Předpřipravený kód je povolen, pokud jasně oddělíme, co vzniklo před akcí a co během ní. Viz [níže](#co-vzniklo-před-akcí-a-co-během-ní) a [docs/01](docs/01_rakathon_2026.md).
 ⚠️ Prototyp, **ne zdravotnický prostředek**. Pouze **syntetická data**, žádná reálná data pacientů.
 
 ## Dokumentace
@@ -66,6 +66,19 @@ src/pacs_check/
   synth/           generátor syntetických scénářů + DICOM + MWL souborů
 docker-compose.yml Orthanc (DICOMweb, MWL, C-FIND)
 ```
+
+## Co vzniklo před akcí a co během ní
+Hranice je git tag `pred-hackathonem` (vytvořen před startem 16. 10. 12:00). Změny během akce: `git diff pred-hackathonem..HEAD`.
+
+**Před akcí (příprava):**
+- rešerše a dokumentace (`docs/`): doména PACS/DICOM, návrh řešení, otázky pro zadavatele, poznatky z podkladů pořadatele
+- lokální PACS v Dockeru (Orthanc s DICOMweb, MWL, C-FIND)
+- generátor syntetických dat (13 scénářů)
+- jádro kontroly: normalizace českého textu, regexová extrakce ze žádanek, pravidla relevance, stavy a úkoly
+- adaptéry JSON, DICOMweb a DIMSE/MWL, výstupy HTML/CSV, FHIR `Task` a audit, testy
+
+**Během akce (16.–17. 10.):**
+- _doplnit před odevzdáním_
 
 ## Použité komponenty a licence (pravidla §6)
 Orthanc (GPLv3) + DICOMweb plugin (AGPLv3), oba běží jako samostatná služba v Dockeru a nejsou součástí našeho kódu, pydicom (MIT), pynetdicom (MIT), httpx (BSD-3), pytest (MIT).

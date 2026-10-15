@@ -7,7 +7,7 @@ Položit na **online session 15. 10.** nebo hned v pátek ráno. Odpovědi zapis
 - [ ] Bude k dispozici testovací PACS/RIS s DICOMweb nebo DIMSE (AE Title, IP, port)?
 - [ ] Dostaneme ukázky reálných (anonymizovaných) **textů žádanek** a **popisů studií/sérií**?
 - [ ] Smíme na data použít externí LLM API, nebo jen lokální model?
-- [ ] Je v pořádku použít kód připravený před akcí? (pravidla to neřeší)
+- [x] Je v pořádku použít kód připravený před akcí? **Ano, ale jasně říct, co vzniklo před akcí a co během ní** (viz [docs/01](01_rakathon_2026.md)).
 
 ## Systémy
 - [ ] Jaký PACS a RIS používá Motol a jaký Homolka (dodavatel, verze)? Podporuje DICOMweb?

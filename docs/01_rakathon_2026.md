@@ -34,8 +34,9 @@
 - **§7 Veřejnost:** výstupy mohou být zveřejněny. Nic citlivého do repa.
 - **§8 Hodnocení:** relevance k výzvě, inovativnost, technická proveditelnost, dopad na zdravotnictví, kvalita prototypu, práce s daty, uživatelská přívětivost, implementační potenciál, kvalita prezentace.
 
-## ⚠️ Otevřená otázka: kód připravený předem
-Pravidla předpřipravený kód **výslovně nezakazují, ale ani nepovolují**. Doporučení:
-1. Zeptat se na online session 15. 10. nebo e-mailem na info@ceehacks.com.
-2. Do té doby brát tento repozitář jako **přípravu znalostí, prostředí a syntetických dat**. Prototyp je „spike“ na ověření, že se s PACS dá mluvit.
-3. Na pitchi transparentně říct, co vzniklo před akcí a co během ní.
+## Kód připravený předem: povoleno, ale transparentně
+Potvrzeno 15. 10. 2026: předpřipravený kód **použít smíme**, ale musíme **jasně říct, co vzniklo před akcí a co během ní**. Postup:
+1. Těsně před startem (pá 16. 10. 12:00) označit stav repa tagem: `git tag pred-hackathonem && git push origin pred-hackathonem`. Všechno po tagu vzniklo během akce a dá se doložit přes `git diff pred-hackathonem..HEAD`.
+2. V README udržovat sekci **„Co vzniklo před akcí a co během ní“** a před odevzdáním ji doplnit o skutečné změny.
+3. V pitchi mít jeden slide nebo větu: „Před akcí: rešerše, lokální PACS, syntetická data a jádro kontroly. Během akce: …“
+4. Commity během akce průběžně, ne jeden velký na konci, aby byl vývoj vidět.
