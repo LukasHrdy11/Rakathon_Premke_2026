@@ -8,3 +8,5 @@ data/generated/
 reports/
 # reálná data sem NIKDY nepatří
 *.dcm
+# podklady pořadatele (materiály třetích stran, repo může být veřejné)
+zdroje/
