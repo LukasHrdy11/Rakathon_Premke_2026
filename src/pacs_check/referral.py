@@ -1,7 +1,7 @@
 """Vytěžení zmínek o předchozích (zejm. externích) vyšetřeních z textu žádanky.
 
 Baseline = regulární výrazy. Na hackathonu je místo pro LLM extraktor se stejným
-rozhraním (vrací list[PriorMention]) – viz docs/03_navrh_reseni.md.
+rozhraním (vrací list[PriorMention]) – viz docs/01_implementace.md (§4.3).
 """
 
 from __future__ import annotations

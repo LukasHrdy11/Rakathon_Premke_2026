@@ -4,15 +4,13 @@
 
 Repozitář je **příprava před hackathonem** (16.–18. 10. 2026): rešerše, doménové znalosti, lokální PACS v Dockeru, syntetická data a funkční prototyp jádra.
 
-ℹ️ Předpřipravený kód je povolen, pokud jasně oddělíme, co vzniklo před akcí a co během ní. Viz [níže](#co-vzniklo-před-akcí-a-co-během-ní) a [docs/01](docs/01_rakathon_2026.md).
+ℹ️ Předpřipravený kód je povolen, pokud jasně oddělíme, co vzniklo před akcí a co během ní. Viz [níže](#co-vzniklo-před-akcí-a-co-během-ní) a [docs/01](docs/01_implementace.md#1-zadání-a-pravidla-v-kostce).
 ⚠️ Prototyp, **ne zdravotnický prostředek**. Pouze **syntetická data**, žádná reálná data pacientů.
 
 ## Dokumentace
 | | |
 |---|---|
-| [01 – Rakathon 2026](docs/01_rakathon_2026.md) | harmonogram, pravidla, ceny, co z pravidel plyne |
-| [02 – Doména PACS/DICOM](docs/02_domena_pacs_dicom.md) | RIS vs PACS, DICOM tagy, DIMSE/DICOMweb/MWL, ePACS, slovníček |
-| [03 – Návrh řešení](docs/03_navrh_reseni.md) | klíčový vhled, architektura, stavy, roadmapa, rizika |
+| [01 – Implementace](docs/01_implementace.md) | zadání a pravidla, doména (DICOM, HL7, FHIR), architektura, moduly, stavy, **testy ↔ zdroje**, ověření proti Orthancu a FHIR serveru, další kroky, slovníček |
 | [04 – Otázky pro zadavatele](docs/04_otazky_pro_zadavatele.md) | co zjistit 15. 10. / v pátek ráno |
 | [06 – Poznatky ze zdrojů](docs/06_poznatky_ze_zdroju.md) | podklady pořadatele (cesta onko pacienta, české eHealth, HL7/FHIR a onko modely): čísla pro pitch, úkoly, FHIR/IHE, právo |
 
